@@ -1,4 +1,5 @@
 var fs = require("fs");
+var output = require('output')
 
 exports.FILES = [
     require.resolve("../lib/utils.js"),
@@ -15,22 +16,16 @@ exports.FILES = [
     require.resolve("./exports.js"),
 ];
 
-new Function("exports", function() {
-    var code = exports.FILES.map(function(file) {
-        return fs.readFileSync(file, "utf8");
-    });
-    code.push("exports.describe_ast = " + describe_ast.toString());
-    return code.join("\n\n");
-}())(exports);
+new Function("exports", output)(exports);
 
 function to_comment(value) {
-    if (typeof value != "string") value = JSON.stringify(value, function(key, value) {
+    if (typeof value != "string") value = JSON.stringify(value, function (key, value) {
         return typeof value == "function" ? "<[ " + value + " ]>" : value;
     }, 2);
     return "// " + value.replace(/\n/g, "\n// ");
 }
 
-if (+process.env["UGLIFY_BUG_REPORT"]) exports.minify = function(files, options) {
+if (+process.env["UGLIFY_BUG_REPORT"]) exports.minify = function (files, options) {
     if (typeof options == "undefined") options = "<<undefined>>";
     var code = [
         "// UGLIFY_BUG_REPORT",
@@ -54,17 +49,18 @@ if (+process.env["UGLIFY_BUG_REPORT"]) exports.minify = function(files, options)
     return result;
 };
 
+exports.describe_ast = describe_ast
 function describe_ast() {
     var out = OutputStream({ beautify: true });
     function doitem(ctor) {
         out.print("AST_" + ctor.TYPE);
-        var props = ctor.SELF_PROPS.filter(function(prop) {
+        var props = ctor.SELF_PROPS.filter(function (prop) {
             return !/^\$/.test(prop);
         });
         if (props.length > 0) {
             out.space();
-            out.with_parens(function() {
-                props.forEach(function(prop, i) {
+            out.with_parens(function () {
+                props.forEach(function (prop, i) {
                     if (i) out.space();
                     out.print(prop);
                 });
@@ -76,10 +72,10 @@ function describe_ast() {
         }
         if (ctor.SUBCLASSES.length > 0) {
             out.space();
-            out.with_block(function() {
-                ctor.SUBCLASSES.sort(function(a, b) {
+            out.with_block(function () {
+                ctor.SUBCLASSES.sort(function (a, b) {
                     return a.TYPE < b.TYPE ? -1 : 1;
-                }).forEach(function(ctor, i) {
+                }).forEach(function (ctor, i) {
                     out.indent();
                     doitem(ctor);
                     out.newline();
@@ -96,9 +92,9 @@ function infer_options(options) {
     return result.error && result.error.defs;
 }
 
-exports.default_options = function() {
+exports.default_options = function () {
     var defs = infer_options({ 0: 0 });
-    Object.keys(defs).forEach(function(component) {
+    Object.keys(defs).forEach(function (component) {
         var options = {};
         options[component] = { 0: 0 };
         if (options = infer_options(options)) {
